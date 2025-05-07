@@ -38,7 +38,13 @@ if __name__ == '__main__':
 
     _printed = set()
 
-    for question in tutorial_questions:
+    while True:
+        question: str = input("\n\nUser input: ")
+
+        if question.lower() == 'close':
+            print("See you!")
+            break
+
         events = graph.stream(
             {"messages": ("user", question)},
             config,
