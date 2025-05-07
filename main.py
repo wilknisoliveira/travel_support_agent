@@ -1,13 +1,11 @@
-import os
 import uuid
-import getpass
-
 from dotenv import load_dotenv
+from langchain_core.messages import ToolMessage
 
 load_dotenv()
 
 from support_bot_agent.db import update_dates, db
-from support_bot_agent.graph import part_1_graph
+from support_bot_agent.graph import graph
 from support_bot_agent.utils.utilities import print_event
 
 tutorial_questions = [
@@ -41,10 +39,40 @@ if __name__ == '__main__':
     _printed = set()
 
     for question in tutorial_questions:
-        events = part_1_graph.stream(
+        events = graph.stream(
             {"messages": ("user", question)},
             config,
             stream_mode="values"
         )
         for event in events:
             print_event(event, _printed)
+
+        snapshot = graph.get_state(config)
+        while snapshot.next:
+            try:
+                user_input = input(
+                    "Do you approve of the above actions? Type 'y' to continue;"
+                    " otherwise, explain your requested changed.\n\n"
+                )
+            except:
+                user_input = "y"
+
+            if user_input.strip() == "y":
+                # Continue
+                result = graph.invoke(
+                    None,
+                    config
+                )
+            else:
+                result = graph.invoke(
+                    {
+                        "messages": [
+                            ToolMessage(
+                                tool_call_id=event["messages"][-1].tool_calls[0]["id"],
+                                content=f"API call denied by user. Reasoning: '{user_input}'. Continue assisting, accounting for the user's input."
+                            )
+                        ]
+                    },
+                    config
+                )
+            snapshot = graph.get_state(config)
