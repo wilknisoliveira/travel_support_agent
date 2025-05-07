@@ -1,0 +1,14 @@
+dotenv
+
+langchain_google_genai
+langchain-community
+langchain_core
+langchain_text_splitters
+
+langgraph
+
+tavily-python
+pandas
+requests
+numpy
+pytz
