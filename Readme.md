@@ -9,7 +9,10 @@ It's designed to handle common customer requests related to:
 *   Hotels
 *   Company policy
 
-This code is an implementation of the tutorial found in the LangGraph documentation: [Documentation](https://langchain-ai.github.io/langgraph/tutorials/customer-support/customer-support). 
+The results provide the follow graph:
+![mermaid_diagram](/utils/mermaid_diagram.png)
+
+This code is an implementation of the tutorial found in the LangGraph [documentation](https://langchain-ai.github.io/langgraph/tutorials/customer-support/customer-support). 
 Please refer to the original tutorial for a detailed explanation of the code and its underlying concepts.
 
 ## Getting Started

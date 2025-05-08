@@ -8,7 +8,7 @@ from support_bot_agent.db import update_dates, db
 from support_bot_agent.graph import graph
 from support_bot_agent.utils.utilities import print_event
 
-tutorial_questions = [
+example_questions_to_use = [
         "Hi there, what time is my flight?",
         "Am i allowed to update my flight to something sooner? I want to leave later today.",
         "Update my flight to sometime next week then",
