@@ -4,8 +4,8 @@ from langchain_core.messages import ToolMessage
 
 load_dotenv()
 
-from support_bot_agent.db import update_dates, db
-from support_bot_agent.graph import graph
+from support_bot_agent.utils.db import update_dates, db
+from support_bot_agent.primary_agent.graph import graph
 from support_bot_agent.utils.utilities import print_event
 
 example_questions_to_use = [

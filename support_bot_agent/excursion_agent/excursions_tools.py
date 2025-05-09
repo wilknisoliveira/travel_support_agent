@@ -1,9 +1,9 @@
 import sqlite3
-from typing import Optional, Union
+from typing import Optional
 
 from langchain_core.tools import tool
 
-from support_bot_agent.db import db
+from support_bot_agent.utils.db import db
 
 @tool
 def search_trip_recommendations(

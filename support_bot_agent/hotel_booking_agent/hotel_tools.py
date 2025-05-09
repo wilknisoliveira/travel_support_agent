@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 from langchain_core.tools import tool
 
-from support_bot_agent.db import db
+from support_bot_agent.utils.db import db
 
 @tool
 def search_hotels(

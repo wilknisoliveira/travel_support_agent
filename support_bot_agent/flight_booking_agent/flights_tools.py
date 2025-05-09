@@ -7,7 +7,7 @@ import pytz
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
 
-from support_bot_agent.db import db
+from support_bot_agent.utils.db import db
 
 @tool
 def fetch_user_flight_information(config: RunnableConfig) -> list[dict]:
