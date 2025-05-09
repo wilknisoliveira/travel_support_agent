@@ -15,7 +15,6 @@ from support_bot_agent.car_rental_agent.car_rental_tools import (
     cancel_car_rental
 )
 
-# Car Rental Assistant
 book_car_rental_prompt = ChatPromptTemplate.from_messages(
     [
         (

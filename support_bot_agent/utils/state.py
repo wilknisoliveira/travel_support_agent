@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 
 from langgraph.graph.message import AnyMessage, add_messages
 
+LEAVE_SKILL = "leave_skill"
 
 def update_dialog_stack(left: list[str], right: Optional[str]) -> list[str]:
     """Push or pop the state"""

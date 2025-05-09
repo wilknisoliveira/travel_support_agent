@@ -1,23 +1,30 @@
-from typing import Literal
+from typing import Literal, Final
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import tools_condition
 
-from support_bot_agent.car_rental_agent.car_graph_builder import create_car_rental_subgraph
+from support_bot_agent.car_rental_agent.car_graph_builder import create_car_rental_subgraph, ENTER_BOOK_CAR_RENTAL, \
+    BOOK_CAR_RENTAL, BOOK_CAR_RENTAL_SENSITIVE_TOOLS
 from support_bot_agent.car_rental_agent.car_rental_agent import ToBookCarRental
 from support_bot_agent.excursion_agent.excursion_agent import ToBookExcursion
-from support_bot_agent.excursion_agent.excursion_graph_builder import create_excursion_subgraph
+from support_bot_agent.excursion_agent.excursion_graph_builder import create_excursion_subgraph, ENTER_BOOK_EXCURSION, \
+    BOOK_EXCURSION, BOOK_EXCURSION_SENSITIVE_TOOLS
 from support_bot_agent.flight_booking_agent.flight_booking_agent import ToFlightBookingAssistant
-from support_bot_agent.flight_booking_agent.flight_graph_builder import create_flight_subgraph
+from support_bot_agent.flight_booking_agent.flight_graph_builder import create_flight_subgraph, ENTER_UPDATE_FLIGHT, \
+    UPDATE_FLIGHT, UPDATE_FLIGHT_SENSITIVE_TOOLS
 from support_bot_agent.hotel_booking_agent.hotel_booking_agent import ToHotelBookingAssistant
-from support_bot_agent.hotel_booking_agent.hotel_graph_builder import create_hotel_subgraph
+from support_bot_agent.hotel_booking_agent.hotel_graph_builder import create_hotel_subgraph, ENTER_BOOK_HOTEL, \
+    BOOK_HOTEL, BOOK_HOTEL_SENSITIVE_TOOLS
 from support_bot_agent.primary_agent.primary_agent import assistant_runnable, primary_assistant_tools
 from support_bot_agent.utils.agent import Assistant
-from support_bot_agent.utils.state import State
+from support_bot_agent.utils.state import State, pop_dialog_state, LEAVE_SKILL
 from support_bot_agent.flight_booking_agent.flights_tools import fetch_user_flight_information
 from support_bot_agent.utils.utilities import create_tool_node_with_fallback
 
+PRIMARY_ASSISTANT_TOOLS = "primary_assistant_tools"
+PRIMARY_ASSISTANT: Final = "primary_assistant"
+FETCH_USER_INFO = "fetch_user_info"
 
 def user_info(state: State):
     return {
@@ -31,14 +38,14 @@ def route_primary_assistant(state: State):
     tool_calls = state["messages"][-1].tool_calls
     if tool_calls:
         if tool_calls[0]["name"] == ToFlightBookingAssistant.__name__:
-            return "enter_update_flight"
+            return ENTER_UPDATE_FLIGHT
         elif tool_calls[0]["name"] == ToBookCarRental.__name__:
-            return "enter_book_car_rental"
+            return ENTER_BOOK_CAR_RENTAL
         elif tool_calls[0]["name"] == ToHotelBookingAssistant.__name__:
-            return "enter_book_hotel"
+            return ENTER_BOOK_HOTEL
         elif tool_calls[0]["name"] == ToBookExcursion.__name__:
-            return "enter_book_excursion"
-        return "primary_assistant_tools"
+            return ENTER_BOOK_EXCURSION
+        return PRIMARY_ASSISTANT_TOOLS
     raise ValueError("Invalid route")
 
 # Each specialized agent can directly respond to the user
@@ -46,22 +53,22 @@ def route_primary_assistant(state: State):
 def route_to_workflow(
     state: State,
 ) -> Literal[
-    "primary_assistant",
-    "update_flight",
-    "book_car_rental",
-    "book_hotel",
-    "book_excursion",
+    PRIMARY_ASSISTANT,
+    UPDATE_FLIGHT,
+    BOOK_CAR_RENTAL,
+    BOOK_HOTEL,
+    BOOK_EXCURSION,
 ]:
     """If we are in a delegated state, route directly to the appropriate assistant."""
     dialog_state = state.get("dialog_state")
     if not dialog_state:
-        return "primary_assistant"
+        return PRIMARY_ASSISTANT
     return dialog_state[-1]
 
 builder = StateGraph(State)
-builder.add_node("fetch_user_info", user_info)
+builder.add_node(FETCH_USER_INFO, user_info)
 # Get the user info at begging
-builder.add_edge(START, "fetch_user_info")
+builder.add_edge(START, FETCH_USER_INFO)
 
 # Building subgraph
 create_flight_subgraph(builder)
@@ -69,39 +76,45 @@ create_car_rental_subgraph(builder)
 create_hotel_subgraph(builder)
 create_excursion_subgraph(builder)
 
-builder.add_node("primary_assistant", Assistant(assistant_runnable))
-builder.add_node("primary_assistant_tools", create_tool_node_with_fallback(primary_assistant_tools))
+builder.add_node(LEAVE_SKILL, pop_dialog_state)
+builder.add_edge(LEAVE_SKILL, PRIMARY_ASSISTANT)
+
+builder.add_node(PRIMARY_ASSISTANT, Assistant(assistant_runnable))
+builder.add_node(PRIMARY_ASSISTANT_TOOLS, create_tool_node_with_fallback(primary_assistant_tools))
 
 # Use the custom instead of tools_condition
 builder.add_conditional_edges(
-    "primary_assistant",
+    PRIMARY_ASSISTANT,
     route_primary_assistant,
     [
-        "enter_update_flight",
-        "enter_book_car_rental",
-        "enter_book_hotel",
-        "enter_book_excursion",
-        "primary_assistant_tools",
+        ENTER_UPDATE_FLIGHT,
+        ENTER_BOOK_CAR_RENTAL,
+        ENTER_BOOK_HOTEL,
+        ENTER_BOOK_EXCURSION,
+        PRIMARY_ASSISTANT_TOOLS,
         END,
     ],
 )
-builder.add_edge("primary_assistant_tools", "primary_assistant")
-builder.add_conditional_edges("fetch_user_info", route_to_workflow)
+builder.add_edge(PRIMARY_ASSISTANT_TOOLS, PRIMARY_ASSISTANT)
+builder.add_conditional_edges(FETCH_USER_INFO, route_to_workflow)
 
 memory = MemorySaver()
 graph = builder.compile(
     checkpointer=memory,
     interrupt_before=[
-        "update_flight_sensitive_tools",
-        "book_car_rental_sensitive_tools",
-        "book_hotel_sensitive_tools",
-        "book_excursion_sensitive_tools",
+        UPDATE_FLIGHT_SENSITIVE_TOOLS,
+        BOOK_CAR_RENTAL_SENSITIVE_TOOLS,
+        BOOK_HOTEL_SENSITIVE_TOOLS,
+        BOOK_EXCURSION_SENSITIVE_TOOLS,
     ],
 )
 
-print("Graph Mermaid Code: ")
+print("Graph Mermaid Code")
+print("--------START---------")
 try:
     print(graph.get_graph().draw_mermaid())
-    print("\n")
 except Exception as e:
     print(f'Display error!: {e}')
+finally:
+    print("--------END---------")
+    print("\n")
